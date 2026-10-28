@@ -26,7 +26,8 @@
            &channel=Splicer_IRL      — канал (по умолчанию Splicer_IRL)
            &scale=1                  — масштаб карточки (0.5 .. 2)
            &after=60                 — секунд показывать результат после завершения (0 = не скрывать)
-           &idle=hide                — полностью скрыть карточку, когда нет активной ставки
+           &idle=show                — показывать пустую карточку, когда нет активной ставки
+                                       (по умолчанию виджет сам «выключается» до следующей ставки)
            &poll=3                   — интервал опроса API в секундах
            &demo=1                   — тестовый режим без токена (фальшивая ставка)
 
@@ -356,7 +357,11 @@
            ============================================================ */
         const DEFAULT_CHANNEL = 'Splicer_IRL';   // канал по умолчанию
         const DEFAULT_POLL_SEC = 3;              // опрос API, когда ставка активна
-        const IDLE_POLL_SEC = 10;                // опрос API, когда ставки нет
+        const IDLE_POLL_SEC = 6;                 // опрос API, когда ставки нет
+        /* мгновенное «включение»: после конца предыдущей ставки виджет
+           быстро опрашивает канал (обычно новая ставка начинается тут же) */
+        const POST_END_POLL_SEC = 3;             // ускоренный опрос в окне после конца ставки
+        const POST_END_WINDOW_SEC = 90;          // длительность окна ускорения, сек
 
         /* Безопасная обёртка localStorage (работает и там, где хранилище запрещено, — file://, OBS и т.п.) */
         const store = {
@@ -383,7 +388,9 @@
         const CHANNEL = (qs.get('channel') || DEFAULT_CHANNEL).toLowerCase();
         const SCALE = Math.min(3, Math.max(0.4, parseFloat(qs.get('scale')) || 1));
         const AFTERForResultSec = parseFloat(qs.get('after') ?? '60');   // показ результата
-        const HIDE_WHEN_IDLE = qs.get('idle') === 'hide';
+        // по умолчанию виджет сам «выключается»: после победы гаснет и молчит,
+        // пока не появится новая ставка. Вернуть постоянную пустую карточку: &idle=show
+        const HIDE_WHEN_IDLE = qs.get('idle') !== 'show';
         const POLL_SEC = Math.max(2, parseFloat(qs.get('poll')) || DEFAULT_POLL_SEC);
         const DEMO = qs.get('demo') === '1';   // тестовый режим без токена (фальшивые данные)
 
@@ -591,6 +598,7 @@
            Основной цикл опроса
            ============================================================ */
         let lastRenderedKey = null;
+        let burstUntil = 0;                      // до какого момента опрашиваем ускоренно
 
         async function tick() {
             try {
@@ -600,16 +608,32 @@
                 const renderKey = p ? (p.id + ':' + status) : null;
 
                 if (!p) {
-                    // ставок вообще нет
-                    if (HIDE_WHEN_IDLE) setVisibility(false);
-                    else { renderEmpty(); setVisibility(true); }
-                    idlePollNext(IDLE_POLL_SEC);
+                    // ставок нет: если недавно закончилась предыдущая — опрашиваем ускоренно,
+                    // чтобы поймать новую сразу при старте
+                    if (HIDE_WHEN_IDLE) {
+                        // самовыключение: полностью прозрачный экран — не карточки, не баннера
+                        clearInterval(renderTimer);
+                        clearTimeout(resultTimer);
+                        banner.className = '';
+                        banner.textContent = '';
+                        setVisibility(false);
+                    } else {
+                        renderEmpty();
+                        setVisibility(true);
+                    }
+                    idlePollNext(Date.now() < burstUntil ? POST_END_POLL_SEC : IDLE_POLL_SEC);
                     return;
+                }
+
+                if ((status === 'RESOLVED' || status === 'CANCELED') && renderKey !== lastRenderedKey) {
+                    // только что завершилась ставка — открываем окно ускоренного опроса,
+                    // чтобы мгновенно поймать следующую
+                    burstUntil = Date.now() + POST_END_WINDOW_SEC * 1000;
                 }
 
                 if (status === 'ACTIVE' || status === 'LOCKED' ||
                     renderKey !== lastRenderedKey) {
-                    // новая ставка или новый статус (в т.ч. интриги END: RESOLVED/CANCELED)
+                    // новая ставка или новый статус (в т.ч. RESOLVED/CANCELED)
                     if (p.id !== (lastRenderedKey || '').split(':')[0]) {
                         oBlue.classList.remove('winner', 'loser');
                         oRed.classList.remove('winner', 'loser');
@@ -617,12 +641,12 @@
                     renderPrediction(p);
                     setVisibility(true);
                     lastRenderedKey = renderKey;
-                    idlePollNext(status === 'ACTIVE' ? POLL_SEC : (status === 'LOCKED' ? POLL_SEC : IDLE_POLL_SEC));
+                    idlePollNext(status === 'ACTIVE' || status === 'LOCKED' ? POLL_SEC : POST_END_POLL_SEC);
                     return;
                 }
 
                 // уже отрисовано в этом статусе — ждём следующий опрос
-                idlePollNext(status === 'RESOLVED' ? IDLE_POLL_SEC : POLL_SEC);
+                idlePollNext(status === 'ACTIVE' ? POLL_SEC : (Date.now() < burstUntil ? POST_END_POLL_SEC : IDLE_POLL_SEC));
             } catch (e) {
                 showErr(e.message + ' — повтор через 30 сек');
                 idlePollNext(30);
