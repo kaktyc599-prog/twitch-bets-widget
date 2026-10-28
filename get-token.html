@@ -76,7 +76,7 @@
     <ol>
         <li>Открой <a href="https://dev.twitch.tv/console/apps" target="_blank">dev.twitch.tv/console/apps</a> и войди под своим каналом (Splicer_IRL).</li>
         <li>«Register Your Application»: название любое (например «OBS Bets»), категория Chat Bot.</li>
-        <li>В поле <b>OAuth Redirect URLs</b> впиши ровно: <code>http://localhost/stavki</code></li>
+        <li>В поле <b>OAuth Redirect URLs</b> впиши ровно: <code id="redirectUrl">https://kaktyc599-prog.github.io/twitch-bets-widget/get-token.html</code></li>
         <li>Нажми Create. Открой приложение и скопируй <b>Client ID</b>.</li>
     </ol>
 
@@ -90,6 +90,7 @@
 
     <h2>Шаг 3 · Склей URL для OBS</h2>
     <input id="tokenIn" placeholder="Вставь сюда access_token из шага 2">
+    <p id="autoNotice" style="display:none" class="ok">✓ Токен пойман автоматически — просто нажми «Собрать готовый URL виджета».</p>
     <button id="makeBtn" class="copy">Собрать готовый URL виджета</button>
 
     <div id="result">
@@ -108,6 +109,9 @@
     </ul>
 
     <script>
+        // адрес этой страницы на GitHub Pages — совпадает с OAuth Redirect URL в Twitch dev
+        const REDIRECT_URL = 'https://kaktyc599-prog.github.io/twitch-bets-widget/get-token.html';
+
         // восстанавливаем прошлые значения, чтобы не вводить дважды
         const cid = document.getElementById('clientId').value = localStorage.getItem('bets_client_id') || '';
         const authBtn = document.getElementById('authBtn');
@@ -116,15 +120,32 @@
             const cid = document.getElementById('clientId').value.trim();
             if (!cid) { alert('Сначала вставь Client ID'); return; }
             localStorage.setItem('bets_client_id', cid);
-            const redirect = 'http://localhost/stavki';
+            // redirect -> GitHub Pages версия этой страницы (если открыта локальный файл, всё равно уводим на Pages)
+            const redirect = REDIRECT_URL;
             const scope = 'channel:read:predictions';
             const url = 'https://id.twitch.tv/oauth2/authorize'
                 + '?client_id=' + encodeURIComponent(cid)
                 + '&redirect_uri=' + encodeURIComponent(redirect)
                 + '&response_type=token'
                 + '&scope=' + encodeURIComponent(scope);
-            window.open(url, '_blank');
+            // токен не хранится в state, поэтому просто локальная метка
+            const state = Math.random().toString(36).slice(2);
+            localStorage.setItem('bets_oauth_state', state);
+            window.open(url + '&state=' + state, '_blank');
         });
+
+        // Автоприём токена: Twitch возвращает access_token в #fragment сюда
+        (function captureHashToken() {
+            const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+            const at = h.get('access_token');
+            if (!at) return;
+            document.getElementById('tokenIn').value = at;
+            const notice = document.getElementById('autoNotice');
+            notice.style.display = 'block';
+            document.getElementById('tokenIn').focus();
+            // чистим URL, чтобы токен не осталось в истории
+            try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+        })();
 
         document.getElementById('makeBtn').addEventListener('click', () => {
             const cid = document.getElementById('clientId').value.trim();

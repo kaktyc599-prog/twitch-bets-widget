@@ -29,14 +29,14 @@
 ### 1. Зарегистрируй приложение Twitch
 
 1. Открой [dev.twitch.tv/console/apps](https://dev.twitch.tv/console/apps) → «Register Your Application»
-2. Название: любое (например `OBS Bets`), OAuth Redirect URLs: `http://localhost/stavki`, категория: Chat Bot
+2. Название: любое (например `OBS Bets`), OAuth Redirect URLs: `https://kaktyc599-prog.github.io/twitch-bets-widget/get-token.html`, категория: Chat Bot
 3. Создай и скопируй **Client ID**.
 
 ### 2. Получи access-токен
 
-Проще всего — открой `get-token.html` (лежит рядом с индексом) и следуй шагам:
-вставь Client ID → кнопка авторизации → войди под **аккаунтом стримера** →
-скопируй `access_token` из адресной строки → склей готовый URL виджета.
+Проще всего — открой [get-token.html на GitHub Pages](https://kaktyc599-prog.github.io/twitch-bets-widget/get-token.html)
+и следуй шагам: вставь Client ID → кнопка авторизации → войди под **аккаунтом стримера**.
+Токен придёт автоматически на ту же страницу → нажми «Собрать готовый URL виджета».
 
 Скоуп: `channel:read:predictions` (только чтение ставок).
 
