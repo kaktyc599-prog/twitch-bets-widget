@@ -392,7 +392,7 @@
         // пока не появится новая ставка. Вернуть постоянную пустую карточку: &idle=show
         const HIDE_WHEN_IDLE = qs.get('idle') !== 'show';
         const POLL_SEC = Math.max(2, parseFloat(qs.get('poll')) || DEFAULT_POLL_SEC);
-        const DEMO = qs.get('demo') === '1';   // тестовый режим без токена (фальшивые данные)
+        const DEMO = qs.get('demo') === '1';   // тестовый режим без токена (фальшивая ставка с полным циклом: активна -> закрыта -> результат -> простой)
 
         document.documentElement.style.zoom = SCALE;
 
@@ -611,12 +611,7 @@
                     // ставок нет: если недавно закончилась предыдущая — опрашиваем ускоренно,
                     // чтобы поймать новую сразу при старте
                     if (HIDE_WHEN_IDLE) {
-                        // самовыключение: полностью прозрачный экран — не карточки, не баннера
-                        clearInterval(renderTimer);
-                        clearTimeout(resultTimer);
-                        banner.className = '';
-                        banner.textContent = '';
-                        setVisibility(false);
+                        hideIdleNow();
                     } else {
                         renderEmpty();
                         setVisibility(true);
@@ -653,6 +648,17 @@
             }
         }
 
+        /* ============================================================
+           Самовыключение: полностью прозрачный экран без ставки
+           ============================================================ */
+        function hideIdleNow() {
+            clearInterval(renderTimer);
+            clearTimeout(resultTimer);
+            banner.className = '';
+            banner.textContent = '';
+            setVisibility(false);
+        }
+
         function idlePollNext(sec) { setTimeout(tick, sec * 1000); }
 
         /* ============================================================
@@ -661,11 +667,18 @@
            победитель чередуется. Полезно проверить вид в OBS без токена.
            ============================================================ */
         const DEMO_START = Date.now();
+        /* Полный цикл демо = 42 сек:
+           0-18  активная ставка (таймер, растущие баллы)
+           18-24 закрыта ("LOCKED")
+           24-36 результат (победитель чередуется)
+           36-42 "ставок нет" — виджет сам выключается, полностью прозрачный
+        */
         function demoTick() {
             hideErr();
+            demoIdle = false;
             const t = (Date.now() - DEMO_START) / 1000;
-            const phase = Math.floor(t / 36) % 4;            // полных цикл = 4 фазы
-            const inPhase = t % 36;
+            const phase = Math.floor(t / 42) % 4;            // полных цикл = 4 фазы
+            const inPhase = t % 42;
             const base = {
                 id: 'demo-' + Math.floor(t / 144),
                 title: 'Кто победит в сегодняшнем челлендже?',
@@ -683,7 +696,7 @@
                 base.prediction_status = 'ACTIVE';
             } else if (inPhase < 24) {
                 base.prediction_status = 'LOCKED';
-            } else {
+            } else if (inPhase < 36) {
                 base.prediction_status = 'RESOLVED';
                 const blueWon = phase % 2 === 1;           // чередуем победителя
                 base.winning_outcome_id = blueWon ? 'demo-b' : 'demo-r';
@@ -692,10 +705,27 @@
                 } else {
                     base.outcomes[1].channel_points += 23400;
                 }
+            } else {
+                // фаза простоя: "ставок нет" — самовыключение (полная прозрачность)
+                demoIdle = true;
             }
+
+            if (demoIdle) {
+                hideIdleNow();
+                return;
+            }
+
+            // resets: новая ставка после простоя — "включаемся" заново
+            if (prevDemoIdle) {
+                oBlue.classList.remove('winner', 'loser');
+                oRed.classList.remove('winner', 'loser');
+            }
+            prevDemoIdle = demoIdle;
+
             renderPrediction(base);
             setVisibility(true);
         }
+        let demoIdle = false, prevDemoIdle = false;
 
         function renderEmpty() {
             // аккуратная пустая карточка, когда ставки нет
