@@ -28,6 +28,7 @@
            &after=60                 — секунд показывать результат после завершения (0 = не скрывать)
            &idle=hide                — полностью скрыть карточку, когда нет активной ставки
            &poll=3                   — интервал опроса API в секундах
+           &demo=1                   — тестовый режим без токена (фальшивая ставка)
 
         Пример:
         ...\bets\index.html?token=abc123&scale=1.1
@@ -312,6 +313,7 @@
         const AFTERForResultSec = parseFloat(qs.get('after') ?? '60');   // показ результата
         const HIDE_WHEN_IDLE = qs.get('idle') === 'hide';
         const POLL_SEC = Math.max(2, parseFloat(qs.get('poll')) || DEFAULT_POLL_SEC);
+        const DEMO = qs.get('demo') === '1';   // тестовый режим без токена (фальшивые данные)
 
         document.documentElement.style.zoom = SCALE;
 
@@ -474,7 +476,7 @@
                 oRed.classList.add(blueWon ? 'loser' : 'winner');
                 showBanner('✓ Победа: ' + (blueWon ? blue.title : red.title) + ' по ' + fmtNum(blueWon ? bp : rp) + ' баллов', 'win');
                 // скрываем карточку через AFTERForResultSec (0 = держать всегда)
-                if (AFTERForResultSec > 0) {
+                if (AFTERForResultSec > 0 && !DEMO) {
                     resultTimer = setTimeout(() => { setVisibility(false); }, AFTERForResultSec * 1000);
                 }
             } else if (status === 'CANCELED') {
@@ -542,6 +544,48 @@
 
         function idlePollNext(sec) { setTimeout(tick, sec * 1000); }
 
+        /* ============================================================
+           ДЕМО-режим (&demo=1): фальшивая ставка целиком в браузере.
+           Цикл: 18 сек "Активна" -> 6 сек "Закрыто" -> 12 сек "Результат",
+           победитель чередуется. Полезно проверить вид в OBS без токена.
+           ============================================================ */
+        const DEMO_START = Date.now();
+        function demoTick() {
+            hideErr();
+            const t = (Date.now() - DEMO_START) / 1000;
+            const phase = Math.floor(t / 36) % 4;            // полных цикл = 4 фазы
+            const inPhase = t % 36;
+            const base = {
+                id: 'demo-' + Math.floor(t / 144),
+                title: 'Кто победит в сегодняшнем челлендже?',
+                prediction_status: 'ACTIVE',
+                outcomes: [
+                    { id: 'demo-b', title: 'Синяя команда', color: 'BLUE', channel_points: 0 },
+                    { id: 'demo-r', title: 'Красная команда', color: 'RED', channel_points: 0 },
+                ],
+            };
+            base.ends_at = new Date(Date.now() + Math.max(0, 18 - inPhase) * 1000);
+            base.outcomes[0].channel_points = Math.floor(1200 + inPhase * 360 + (phase === 3 ? 9100 : 0));
+            base.outcomes[1].channel_points = Math.floor(2700 + inPhase * 240 + (phase === 3 ? 15700 : 0));
+
+            if (inPhase < 18) {
+                base.prediction_status = 'ACTIVE';
+            } else if (inPhase < 24) {
+                base.prediction_status = 'LOCKED';
+            } else {
+                base.prediction_status = 'RESOLVED';
+                const blueWon = phase % 2 === 1;           // чередуем победителя
+                base.winning_outcome_id = blueWon ? 'demo-b' : 'demo-r';
+                if (blueWon) {
+                    base.outcomes[0].channel_points += 12300;
+                } else {
+                    base.outcomes[1].channel_points += 23400;
+                }
+            }
+            renderPrediction(base);
+            setVisibility(true);
+        }
+
         function renderEmpty() {
             // аккуратная пустая карточка, когда ставки нет
             currentPrediction = null;
@@ -562,7 +606,12 @@
            Старт
            ============================================================ */
         // лёгкая проверка: если карточка ещё не показывали, но ставок нет и idle=hide — она просто скрыта
-        tick();
+        if (DEMO) {
+            demoTick();
+            setInterval(demoTick, 1000);   // в демо-режиме тикаем каждую секунду
+        } else {
+            tick();
+        }
     </script>
 </body>
 </html>
