@@ -535,11 +535,18 @@
 
             if (status === 'ACTIVE') {
                 badge.textContent = 'Ставка';
-                // таймер до авто-закрытия
-                const endsMs = Date.parse(p.ends_at);
+                // таймер: remaining до конца окна, взвешенный из настроек Твича (prediction_window)
+                const startedMs = Date.parse(p.started_at || p.created_at) || Date.now();
+                const windowSec = Math.max(0, (p.prediction_window | 0)
+                    || Math.round((Date.parse(p.ends_at) - startedMs) / 1000)
+                    || 0);
+                const endsMs = Date.parse(p.ends_at) || (startedMs + windowSec * 1000);
+                const windowLabel = windowSec > 0 ? ' из ' + fmtTime(windowSec) : '';
                 const update = () => {
                     const left = (endsMs - Date.now()) / 1000;
-                    timer.textContent = left > 0 ? 'осталось ' + fmtTime(left) : 'закрывается…';
+                    timer.textContent = left > 0
+                        ? 'осталось ' + fmtTime(left) + windowLabel
+                        : 'закрывается…';
                     // последние 3 секунды — мигание фиолетовым
                     timer.classList.toggle('urgent', left <= 3 && left > 0);
                 };
@@ -579,8 +586,8 @@
                 clearInterval(renderTimer);
                 oBlue.classList.add('loser');
                 oRed.classList.add('loser');
-                showBanner('Ставка отменена — баллы возвращены', 'cancel', 4000);
-                if (AFTERForResultSec > 0) {
+                showBanner('Ставка отменена — баллы возвращены', 'cancel');
+                if (AFTERForResultSec > 0 && !DEMO) {
                     resultTimer = setTimeout(() => { setVisibility(false); }, Math.min(AFTERForResultSec, 20) * 1000);
                 }
             }
@@ -683,6 +690,7 @@
                 id: 'demo-' + Math.floor(t / 144),
                 title: 'Кто победит в сегодняшнем челлендже?',
                 prediction_status: 'ACTIVE',
+                prediction_window: 18,                       // окно из настроек ставки на Твиче (30с/1м/5м и т.д.)
                 outcomes: [
                     { id: 'demo-b', title: 'Зелёная команда', color: 'BLUE', channel_points: 0 },
                     { id: 'demo-r', title: 'Фиолетовая команда', color: 'RED', channel_points: 0 },
@@ -697,13 +705,18 @@
             } else if (inPhase < 24) {
                 base.prediction_status = 'LOCKED';
             } else if (inPhase < 36) {
-                base.prediction_status = 'RESOLVED';
-                const blueWon = phase % 2 === 1;           // чередуем победителя
-                base.winning_outcome_id = blueWon ? 'demo-b' : 'demo-r';
-                if (blueWon) {
-                    base.outcomes[0].channel_points += 12300;
+                if (phase === 2) {
+                    // третья полная фаза цикла — демонстрация ОТМЕНЫ ставки
+                    base.prediction_status = 'CANCELED';
                 } else {
-                    base.outcomes[1].channel_points += 23400;
+                    base.prediction_status = 'RESOLVED';
+                    const blueWon = phase % 2 === 1;       // чередуем победителя
+                    base.winning_outcome_id = blueWon ? 'demo-b' : 'demo-r';
+                    if (blueWon) {
+                        base.outcomes[0].channel_points += 12300;
+                    } else {
+                        base.outcomes[1].channel_points += 23400;
+                    }
                 }
             } else {
                 // фаза простоя: "ставок нет" — самовыключение (полная прозрачность)
