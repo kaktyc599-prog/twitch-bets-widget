@@ -516,8 +516,10 @@
             oRed.classList.remove('winner', 'loser');
             oBlue.querySelector('.o-name span').textContent = blue ? blue.title : 'Вариант 1';
             oRed.querySelector('.o-name span').textContent = red ? red.title : 'Вариант 2';
-            bPts.textContent = fmtNum(bp) + ' (' + Math.round(bShare) + '%)';
-            rPts.textContent = fmtNum(rp) + ' (' + Math.round(rShare) + '%)';
+            // коэффициент возврата ставки: во сколько раз вернётся пул при победе этой стороны
+            const coeffTxt = pts => pts > 0 ? ' ×' + (total / pts).toFixed(2).replace(/\.?0+$/, '') : '';
+            bPts.textContent = fmtNum(bp) + ' (' + Math.round(bShare) + '%)' + coeffTxt(bp);
+            rPts.textContent = fmtNum(rp) + ' (' + Math.round(rShare) + '%)' + coeffTxt(rp);
             barBlue.style.width = bShare + '%';
             barRed.style.width = rShare + '%';
 
@@ -550,8 +552,14 @@
                 const blueWon = blue && blue.id === winIdx;
                 oBlue.classList.add(blueWon ? 'winner' : 'loser');
                 oRed.classList.add(blueWon ? 'loser' : 'winner');
+                const winPts = blueWon ? bp : rp;
+                // коэффициент возврата: общий пул / баллы победившей стороны
+                const coeff = winPts > 0 ? total / winPts : 0;
+                const coeffStr = winPts > 0
+                    ? ' (×' + coeff.toFixed(2).replace(/\.?0+$/, '') + ')'
+                    : '';
                 showBanner(
-                    '✓ Победа: ' + (blueWon ? blue.title : red.title) + ' по ' + fmtNum(blueWon ? bp : rp) + ' баллов',
+                    'Победа ' + (blueWon ? 'зелёных' : 'фиолетовых') + ' — ' + fmtNum(winPts) + ' баллов' + coeffStr,
                     blueWon ? 'win win-green' : 'win win-purple'
                 );
                 // скрываем карточку через AFTERForResultSec (0 = держать всегда)
