@@ -40,15 +40,19 @@
            Переменные стиля (правь здесь, если хочешь поменять оформление)
            ============================================================ */
         :root {
-            --card-bg: rgba(10, 12, 16, 0.72);      /* фон карточки */
+            --card-bg: rgba(7, 10, 9, 0.78);        /* фон карточки */
             --card-radius: 16px;                    /* скругление углов */
             --card-width: 640px;                    /* ширина карточки */
             --font-size: 20px;                      /* базовый размер шрифта */
-            --accent: #9147ff;                      /* фиолетовый Twitch */
-            --blue: #2a6fff;                        /* вариант 1 (синий) */
-            --red: #e8203c;                         /* вариант 2 (красный) */
+            --accent: #b96bff;                      /* фиолетовый акцент бейджа */
+            --green: #00ff9d;                       /* вариант 1 (зелёный) */
+            --purple: #b96bff;                      /* вариант 2 (фиолетовый) */
+            /* Легаси-алиасы: классы в разметке исторически названы blue/red,
+               фактические цвета — зелёный и фиолетовый */
+            --blue: var(--green);
+            --red: var(--purple);
             --text: #ffffff;
-            --text-dim: #99a0ad;
+            --text-dim: #9aa3b2;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -70,11 +74,14 @@
         #card {
             width: var(--card-width);
             background: var(--card-bg);
-            backdrop-filter: blur(6px);
+            backdrop-filter: blur(8px);
             border-radius: var(--card-radius);
-            box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+            box-shadow:
+                0 10px 34px rgba(0, 0, 0, 0.55),
+                0 0 26px rgba(0, 255, 157, 0.07),
+                0 0 44px rgba(185, 107, 255, 0.10);
             padding: 16px 20px 18px;
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(160, 255, 210, 0.14);
             transition: opacity 0.45s ease, transform 0.45s ease;
             opacity: 0;                              /* прячем, пока нет данных */
             transform: translateY(-12px);
@@ -99,9 +106,10 @@
             font-weight: 700;
             letter-spacing: 1.5px;
             text-transform: uppercase;
-            color: var(--accent);
-            background: rgba(145, 71, 255, 0.14);
-            border: 1px solid rgba(145, 71, 255, 0.35);
+            color: #d2a8ff;
+            background: rgba(185, 107, 255, 0.16);
+            border: 1px solid rgba(185, 107, 255, 0.45);
+            box-shadow: 0 0 14px rgba(185, 107, 255, 0.30), inset 0 0 10px rgba(185, 107, 255, 0.10);
             padding: 4px 12px;
             border-radius: 999px;
         }
@@ -110,8 +118,8 @@
             content: '';
             width: 8px; height: 8px;
             border-radius: 50%;
-            background: var(--accent);
-            box-shadow: 0 0 8px var(--accent);
+            background: var(--purple);
+            box-shadow: 0 0 9px var(--purple), 0 0 16px var(--purple);
             animation: pulse 1.6s ease-in-out infinite;
         }
 
@@ -123,21 +131,45 @@
         #timer {
             font-size: 14px;
             font-weight: 700;
-            color: var(--text);
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #d6fff0;
+            background: rgba(0, 255, 157, 0.08);
+            border: 1px solid rgba(0, 255, 157, 0.35);
+            box-shadow: 0 0 12px rgba(0, 255, 157, 0.22), inset 0 0 8px rgba(0, 255, 157, 0.06);
             padding: 4px 12px;
             border-radius: 999px;
             font-variant-numeric: tabular-nums;      /* цифры не "прыгают" */
         }
 
-        /* ==================== Вопрос ==================== */
+        /* последние 3 секунды приёма ставок — таймер мигает фиолетовым */
+        #timer.urgent {
+            color: #e5c6ff;
+            background: rgba(185, 107, 255, 0.20);
+            border-color: rgba(185, 107, 255, 0.75);
+            animation: timerBlink 0.55s ease-in-out infinite;
+        }
+
+        @keyframes timerBlink {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 18px rgba(185, 107, 255, 0.75), inset 0 0 10px rgba(185, 107, 255, 0.25);
+            }
+            50% {
+                opacity: 0.30;
+                box-shadow: 0 0 4px rgba(185, 107, 255, 0.25);
+            }
+        }
+
+        /* ==================== Вопрос (градиентный неон-текст) ==================== */
         #title {
             font-size: 26px;
             font-weight: 800;
             line-height: 1.25;
             margin: 2px 0 12px;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+            background: linear-gradient(92deg, #8fffd9 0%, #ffffff 45%, #d9aaff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 0 14px rgba(0, 255, 157, 0.22)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.65));
         }
 
         /* ==================== Варианты ответов ==================== */
@@ -153,9 +185,9 @@
             gap: 4px;
             padding: 10px 14px 12px;
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.05);
             border-top: 3px solid transparent;
-            transition: opacity 0.5s ease, filter 0.5s ease, transform 0.3s ease;
+            background: rgba(255, 255, 255, 0.04);
+            transition: opacity 0.5s ease, filter 0.5s ease, transform 0.3s ease, box-shadow 0.4s ease;
         }
 
         .outcome .o-name {
@@ -183,19 +215,42 @@
             font-variant-numeric: tabular-nums;
         }
 
-        .outcome.blue { border-top-color: var(--blue); }
-        .outcome.blue .o-name::before { background: var(--blue); box-shadow: 0 0 8px var(--blue); }
-        .outcome.blue .o-pts strong { color: #6ea8ff; }
+        .outcome.blue {
+            border-top-color: var(--green);
+            background: linear-gradient(180deg, rgba(0, 255, 157, 0.12), rgba(0, 255, 157, 0.02) 70%);
+            box-shadow: 0 0 16px -4px rgba(0, 255, 157, 0.45), inset 0 0 18px rgba(0, 255, 157, 0.06);
+        }
+        .outcome.blue .o-name::before {
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green), 0 0 15px var(--green);
+        }
+        .outcome.blue .o-pts strong { color: #74ffcf; text-shadow: 0 0 10px rgba(0, 255, 157, 0.55); }
 
-        .outcome.red { border-top-color: var(--red); }
-        .outcome.red .o-name::before { background: var(--red); box-shadow: 0 0 8px var(--red); }
-        .outcome.red .o-pts strong { color: #ff7180; }
+        .outcome.red {
+            border-top-color: var(--purple);
+            background: linear-gradient(180deg, rgba(185, 107, 255, 0.14), rgba(185, 107, 255, 0.02) 70%);
+            box-shadow: 0 0 16px -4px rgba(185, 107, 255, 0.45), inset 0 0 18px rgba(185, 107, 255, 0.07);
+        }
+        .outcome.red .o-name::before {
+            background: var(--purple);
+            box-shadow: 0 0 8px var(--purple), 0 0 15px var(--purple);
+        }
+        .outcome.red .o-pts strong { color: #d5aaff; text-shadow: 0 0 10px rgba(185, 107, 255, 0.60); }
 
         /* Проигравший вариант тускнеет после результата */
-        .outcome.loser { opacity: 0.35; filter: saturate(0.4); transform: scale(0.985); }
+        .outcome.loser { opacity: 0.35; filter: saturate(0.4); transform: scale(0.985); box-shadow: none; }
         .outcome.winner {
-            background: rgba(255, 255, 255, 0.10);
-            animation: winPop 0.5s ease;
+            animation: winPop 0.5s ease, winGlow 2.2s ease-in-out infinite 0.6s;
+        }
+
+        /* фиолетовое свечение, если победил второй вариант */
+        .outcome.red.winner {
+            animation: winPop 0.5s ease, winGlowP 2.2s ease-in-out infinite 0.6s;
+        }
+
+        @keyframes winGlowP {
+            0%, 100% { box-shadow: 0 0 18px -2px rgba(185, 107, 255, 0.55), inset 0 0 20px rgba(185, 107, 255, 0.12); }
+            50%      { box-shadow: 0 0 30px 2px rgba(185, 107, 255, 0.80), inset 0 0 26px rgba(185, 107, 255, 0.18); }
         }
 
         @keyframes winPop {
@@ -209,9 +264,10 @@
             margin-top: 12px;
             height: 8px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.08);
-            overflow: hidden;
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.55);
             display: flex;
+            /* glow сегментов не обрезаем: overflow visible */
         }
 
         #barBlue, #barRed {
@@ -220,8 +276,8 @@
             transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        #barBlue { background: var(--blue); }
-        #barRed  { background: var(--red); }
+        #barBlue { background: linear-gradient(90deg, #007a52, var(--green)); box-shadow: 0 0 12px rgba(0, 255, 157, 0.65); border-radius: 999px 0 0 999px; }
+        #barRed  { background: linear-gradient(90deg, #7a3ad6, var(--purple)); box-shadow: 0 0 12px rgba(185, 107, 255, 0.65); border-radius: 0 999px 999px 0; }
 
         /* ==================== Сообщение-баннер (результат/ошибка) ==================== */
         #banner {
@@ -234,8 +290,9 @@
         }
 
         #banner.show { opacity: 1; }
-        #banner.win  { color: #7dff9b; text-shadow: 0 0 14px rgba(125, 255, 155, 0.45); }
-        #banner.cancel { color: #ffd166; }
+        #banner.win.win-green { color: #7dffd0; text-shadow: 0 0 16px rgba(0, 255, 157, 0.75), 0 0 30px rgba(0, 255, 157, 0.40); }
+        #banner.win.win-purple { color: #d5aaff; text-shadow: 0 0 16px rgba(185, 107, 255, 0.80), 0 0 30px rgba(185, 107, 255, 0.45); }
+        #banner.cancel { color: #ffd166; text-shadow: 0 0 12px rgba(255, 209, 102, 0.45); }
         #banner.error, #banner.lock { color: var(--text-dim); font-weight: 600; font-size: 15px; }
 
         /* ==================== Экран ошибки ==================== */
@@ -336,11 +393,12 @@
         }
         function hideErr() { errBox.classList.remove('show'); }
 
-        function showBanner(text, cls, ms = 0) {
+        function showBanner(text, cls = '', ms = 0) {
             banner.className = '';
             banner.textContent = text;
             banner.classList.add('show');
-            if (cls) banner.classList.add(cls);
+            // можно передать несколько классов через пробел: 'win win-green'
+            String(cls).split(/\s+/).filter(Boolean).forEach(c => banner.classList.add(c));
             if (ms > 0) setTimeout(() => { if (banner.textContent === text) banner.classList.remove('show'); }, ms);
         }
 
@@ -458,12 +516,15 @@
                 const update = () => {
                     const left = (endsMs - Date.now()) / 1000;
                     timer.textContent = left > 0 ? 'осталось ' + fmtTime(left) : 'закрывается…';
+                    // последние 3 секунды — мигание фиолетовым
+                    timer.classList.toggle('urgent', left <= 3 && left > 0);
                 };
                 update();
                 clearInterval(renderTimer);
                 renderTimer = setInterval(update, 1000);
             } else if (status === 'LOCKED') {
                 badge.textContent = 'Закрыто';
+                timer.classList.remove('urgent');
                 timer.textContent = 'приём ставок окончен';
                 clearInterval(renderTimer);
             } else if (status === 'RESOLVED') {
@@ -474,7 +535,10 @@
                 const blueWon = blue && blue.id === winIdx;
                 oBlue.classList.add(blueWon ? 'winner' : 'loser');
                 oRed.classList.add(blueWon ? 'loser' : 'winner');
-                showBanner('✓ Победа: ' + (blueWon ? blue.title : red.title) + ' по ' + fmtNum(blueWon ? bp : rp) + ' баллов', 'win');
+                showBanner(
+                    '✓ Победа: ' + (blueWon ? blue.title : red.title) + ' по ' + fmtNum(blueWon ? bp : rp) + ' баллов',
+                    blueWon ? 'win win-green' : 'win win-purple'
+                );
                 // скрываем карточку через AFTERForResultSec (0 = держать всегда)
                 if (AFTERForResultSec > 0 && !DEMO) {
                     resultTimer = setTimeout(() => { setVisibility(false); }, AFTERForResultSec * 1000);
@@ -560,8 +624,8 @@
                 title: 'Кто победит в сегодняшнем челлендже?',
                 prediction_status: 'ACTIVE',
                 outcomes: [
-                    { id: 'demo-b', title: 'Синяя команда', color: 'BLUE', channel_points: 0 },
-                    { id: 'demo-r', title: 'Красная команда', color: 'RED', channel_points: 0 },
+                    { id: 'demo-b', title: 'Зелёная команда', color: 'BLUE', channel_points: 0 },
+                    { id: 'demo-r', title: 'Фиолетовая команда', color: 'RED', channel_points: 0 },
                 ],
             };
             base.ends_at = new Date(Date.now() + Math.max(0, 18 - inPhase) * 1000);
@@ -592,8 +656,8 @@
             badge.textContent = 'Ставки';
             timer.style.display = 'none';
             title.textContent = '';
-            bTitle.textContent = 'Синий';
-            rTitle.textContent = 'Красный';
+            bTitle.textContent = 'Зелёный';
+            rTitle.textContent = 'Фиолетовый';
             bPts.textContent = '0 (50%)';
             rPts.textContent = '0 (50%)';
             barBlue.style.width = '50%';
