@@ -122,7 +122,8 @@
             localStorage.setItem('bets_client_id', cid);
             // redirect -> GitHub Pages версия этой страницы (если открыта локальный файл, всё равно уводим на Pages)
             const redirect = REDIRECT_URL;
-            const scope = 'channel:read:predictions';
+            // оба скоупа: ставки (stavki) + опросы (opros) — один токен на оба виджета
+            const scope = 'channel:read:predictions channel:read:polls';
             const url = 'https://id.twitch.tv/oauth2/authorize'
                 + '?client_id=' + encodeURIComponent(cid)
                 + '&redirect_uri=' + encodeURIComponent(redirect)
